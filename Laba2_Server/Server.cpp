@@ -10,12 +10,14 @@
 
 using namespace std;
 
-char* ChangeLine(char* str);
+void ChangeLine(char* str, char* newline, int& difference);
 int LineLength(char* str);
 
 int main(int args, char* argv[])
 {
 	const int requiredlength = 10;
+	char requiredlengthchar[3];
+	itoa(requiredlength, requiredlengthchar, 10);
 
 	WSADATA data;
 	WORD DDLversion = MAKEWORD(2, 2);
@@ -66,8 +68,43 @@ int main(int args, char* argv[])
 		cout << "Client received length: " << size << endl;
 	}
 
-	/*if (LineLength(buf) == requiredlength)
-		ChangeLine(buf);*/
+	if (sendto(sListen, requiredlengthchar, sizeof(requiredlengthchar), 0, (SOCKADDR*)&client_addr, sizeofclient_addr) == SOCKET_ERROR) //send length
+	{
+		cout << "Sendto client failed. " << WSAGetLastError() << endl;
+		return -1;
+	}
+	else
+	{
+		cout << "Client received Reccomended Length: " << requiredlength << endl;
+	}
+
+	if (LineLength(buf) == requiredlength)
+	{
+		char newline[100];
+		int difference = 0; char difference_char[3];
+
+		ChangeLine(buf, newline, difference);
+		cout << "New line: " << newline << "; Amount of changed symbols: " << difference << endl;
+		itoa(difference, difference_char, 10);
+		if (sendto(sListen, newline, sizeof(newline), 0, (SOCKADDR*)&client_addr, sizeofclient_addr) == SOCKET_ERROR) //send new line
+		{
+			cout << "Sendto client failed. " << WSAGetLastError() << endl;
+			return -1;
+		}
+		else
+		{
+			cout << "Client received changed line." << endl;
+		}
+		if (sendto(sListen, difference_char, sizeof(difference_char), 0, (SOCKADDR*)&client_addr, sizeofclient_addr) == SOCKET_ERROR) //send difference
+		{
+			cout << "Sendto client failed. " << WSAGetLastError() << endl;
+			return -1;
+		}
+		else
+		{
+			cout << "Client received diffference: " << endl;
+		}
+	}
 	
 
 
@@ -75,17 +112,19 @@ int main(int args, char* argv[])
 	WSACleanup();
 }
 
-char* ChangeLine(char*str)
+void ChangeLine(char*str, char*newline, int &difference)
 {
-	char buf[100];
 	int poz = 0;
 	for (int i = 0; str[i] != '\0'; i++)
 	{
 		if (str[i] >= 'A' && str[i] <= 'Z')
+		{
+			++difference;
 			continue;
-		buf[poz++] = str[i];
+		}
+		newline[poz++] = str[i];
 	}
-	return buf;
+	newline[poz] = '\0';
 }
 
 int LineLength(char* str)
