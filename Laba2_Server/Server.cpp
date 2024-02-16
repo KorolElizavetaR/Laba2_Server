@@ -6,11 +6,17 @@
 
 
 #pragma comment(lib, "ws2_32.lib")
+#pragma warning(disable:4996)
 
 using namespace std;
 
-int main()
+char* ChangeLine(char* str);
+int LineLength(char* str);
+
+int main(int args, char* argv[])
 {
+	const int requiredlength = 10;
+
 	WSADATA data;
 	WORD DDLversion = MAKEWORD(2, 2);
 	if (WSAStartup(DDLversion, &data) != 0) 
@@ -39,17 +45,53 @@ int main()
 	char buf[100];
 	const int bufsize = sizeof(buf);
 
-	if (recvfrom(sListen, buf, bufsize, 0, (SOCKADDR*)&client_addr, &sizeofclient_addr) == SOCKET_ERROR)
+	if (recvfrom(sListen, buf, bufsize, 0, (SOCKADDR*)&client_addr, &sizeofclient_addr) == SOCKET_ERROR)//receive line
 	{
-		cout << "Error received from client. " << WSAGetLastError() << endl;
+		cout << "Error recv from client. " << WSAGetLastError() << endl;
 		return -1;
 	}
 
-	/* char buffer[255];
-	const int buffersize = sizeof(buffer);
-	inet_ntop(AF_INET, &client_addr.sin_addr, buffer, buffersize); */
+	cout << "Message: " << buf << endl;
+	
+	char sizeofline[3]; int size = LineLength(buf);
+	itoa(size, sizeofline, 10);
+
+	if (sendto(sListen, sizeofline, sizeof(sizeofline), 0, (SOCKADDR*)&client_addr, sizeofclient_addr) == SOCKET_ERROR) //send length
+	{
+		cout << "Sendto client failed. " << WSAGetLastError() << endl;
+		return -1;
+	}
+	else
+	{
+		cout << "Client received length: " << size << endl;
+	}
+
+	/*if (LineLength(buf) == requiredlength)
+		ChangeLine(buf);*/
+	
 
 
 	closesocket(sListen);
 	WSACleanup();
+}
+
+char* ChangeLine(char*str)
+{
+	char buf[100];
+	int poz = 0;
+	for (int i = 0; str[i] != '\0'; i++)
+	{
+		if (str[i] >= 'A' && str[i] <= 'Z')
+			continue;
+		buf[poz++] = str[i];
+	}
+	return buf;
+}
+
+int LineLength(char* str)
+{
+	int counter = 0;
+	while (str[counter] != '\0')
+		counter++;
+	return counter;
 }
